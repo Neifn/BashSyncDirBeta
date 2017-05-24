@@ -1,36 +1,41 @@
 #!/bin/bash
+
 # Colors
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
+
 function error_message {
   echo -e "${RED}$1${NC}"
   exit 1
 }
+
+#Sync scrip compares fales that are not equal or dont exist
 sync()
-{ 
-  if ssh $2 stat $1 \> /dev/null 2\>\&1 &
+{
+  if ssh $2 stat $1 \> /dev/null 2\>\&1
     then
-      FirstServerFiles=$( find /$1 -type f -follow -print | while read line 
-         do    md5sum $line | awk '{print $1;}' ; done )
-      SecondServerFiles=$( ssh $2 find /$1 -type f -follow -print | while read line
-         do    md5sum $line | awk '{print $1;}' ; done )
-      if [ "$FirstServerFiles" != "$SecondServerFiles" ]  
-         then 
-            echo -e "${YELLOW} files and/or directories are not equal ${NC}"
-            #copy first arg to server in the same directory
-            scp -r $1 $2:$1
-            echo -e "${GREEN} not equal files have been copied ${NC}"
-         else
-           echo -e "${GREEN} files are equal sync is not needed ${NC}"
-      fi
-    wait
+       find /$1 -type f -follow -print | while read line
+         do    md5sum $line ;
+           ssh $2 find /$1 -type f -follow -print | while read line
+           do    md5sum $line2 ; done
+           if [ "$line | awk '{print $1;}'" != "$line2 | awk '{print $1;}'" ]
+             then
+               echo -e "${YELLOW} files and/or directories are not equal ${NC}"
+               #copy first arg to server in the same directory
+               scp -r $1 $2:$1
+               echo -e "${GREEN} not equal files have been copied ${NC}"
+             else
+               echo -e "${GREEN} files are equal sync is not needed ${NC}"
+           fi
+        done
   fi
 }
+
 trap ctrl_c INT
 if [ $# -lt 1 ]
-  then 
+  then
     error_message "invalid arg"
 fi
 
@@ -40,16 +45,16 @@ case $1 in
       then
         error_message "not enough args see --help more information"
     fi
-    if [ ! $2 ]; then
-    error_message "file not found"
+    if [ ! -f "$2" ] && [ ! -d "$2" ] ; then
+    error_message "file or directory not founid"
     fi
     if ! nc -z -v -w5 $3 22 &
-      then 
+      then
         error_message "server is not avaliable on port 22"
     fi
     for i in $(echo $3 | sed "s/,/ /g")
       do
-        sync $2 $i
+        sync $2 $i &
       done
     wait
     ;;
@@ -60,4 +65,3 @@ case $1 in
     error_message "invalid arg --help"
     ;;
 esac
-
