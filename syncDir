@@ -16,7 +16,7 @@ sync()
 {
 find $1 -type f -follow -print | while read file1
   do
-  ssh $2 mkdir -p (dirname $file1) 
+  ssh $2 mkdir -p $(dirname $file1) 
     if ssh $2 stat $file1 \> /dev/null 2\>\&1
       then
       echo -e "${YELLOW}file exists checking md5sum...${NC}"
