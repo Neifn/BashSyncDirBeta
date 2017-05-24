@@ -31,6 +31,8 @@ find $1 -type f -follow -print | while read file1
           scp -r $1 $2:$file1
         echo -e "${GREEN} absent files have been copied ${NC}"
       fi
+      #finish here
+      else 
     fi
   done
 }
