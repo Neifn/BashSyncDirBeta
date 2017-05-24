@@ -14,25 +14,26 @@ function error_message {
 #Sync scrip compares fales that are not equal or dont exist
 sync()
 {
-  if ssh $2 stat $1 \> /dev/null 2\>\&1
-    then
-       find /$1 -type f -follow -print | while read line
-         do    md5sum $line ;
-           ssh $2 find /$1 -type f -follow -print | while read line
-           do    md5sum $line2 ; done
-           if [ "$line | awk '{print $1;}'" != "$line2 | awk '{print $1;}'" ]
-             then
-               echo -e "${YELLOW} files and/or directories are not equal ${NC}"
-               #copy first arg to server in the same directory
-               scp -r $1 $2:$1
-               echo -e "${GREEN} not equal files have been copied ${NC}"
-             else
-               echo -e "${GREEN} files are equal sync is not needed ${NC}"
-           fi
-        done
-  fi
+find $1 -type f -follow -print | while read file1
+  do
+    if ssh $2 stat $file1 \> /dev/null 2\>\&1
+      then
+      echo -e "${YELLOW}file exists checking md5sum...${NC}"
+      md5sum1=$( md5sum $file1 | awk '{print $1;}' )
+      md5sum2=$( ssh $2 md5sum $file1 | awk '{print $1;}' )
+      Path=$( dirname $1)
+      if [ "$md5sum1" != "$md5sum2" ]
+        then
+          scp -r $1 $2:$Path
+          echo -e "${GREEN} not equal files have been copied ${NC}"
+        else
+          echo -e "${YELLOW}file does not exist${NC}"
+          scp -r $1 $2:$Path
+        echo -e "${GREEN} absent files have been copied ${NC}"
+      fi
+    fi
+  done
 }
-
 trap ctrl_c INT
 if [ $# -lt 1 ]
   then
@@ -48,12 +49,12 @@ case $1 in
     if [ ! -f "$2" ] && [ ! -d "$2" ] ; then
     error_message "file or directory not founid"
     fi
-    if ! nc -z -v -w5 $3 22 &
-      then
-        error_message "server is not avaliable on port 22"
-    fi
     for i in $(echo $3 | sed "s/,/ /g")
       do
+      if ! nc -z -v -w5 $i 22
+        then
+          error_message "server is not avaliable on port 22"
+      fi
         sync $2 $i &
       done
     wait
