@@ -11,7 +11,7 @@ function error_message {
   exit 1
 }
 
-#Sync scrip compares fales that are not equal or dont exist
+#Sync scrip compares files that are not equal or don't exist
 sync()
 {
 find $1 -type f -follow -print | while read file1
@@ -36,7 +36,6 @@ find $1 -type f -follow -print | while read file1
     fi
   done
 }
-trap ctrl_c INT
 if [ $# -lt 1 ]
   then
     error_message "invalid arg"
